@@ -1,0 +1,171 @@
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  color: hsla(133, 97%, 48%, 0.986);
+  background: #022979;
+}
+
+
+header {
+  background: #61d651;
+  color: rgb(235, 238, 50);
+  padding: 24px 16px;
+  text-align: center;
+  font-weight: bolder;
+  font-style: italic;
+}
+
+header h1 {
+  margin: 0 0 4px 0;
+}
+
+header p {
+  margin: 0;
+  color: #1e0494f1;
+}
+
+
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+nav a {
+  color: rgb(59, 151, 90);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 4px;
+  transition: opacity 0.2s ease;
+}
+
+nav a:hover {
+  text-decoration: underline;
+  opacity: 0.7;
+}
+
+
+main {
+  max-width: 700px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+section {
+  background: rgb(230, 84, 91);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.features li {
+  background: #bb65b4;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid #ac2828;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+th {
+  background: #d151b1;
+}
+
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+form div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+label {
+  font-weight: 600;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #c56c6c;
+  border-radius: 4px;
+  font: inherit;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+
+button {
+  background: #2bb4cc;
+  color: rgb(121, 92, 79);
+  border: none;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background: #e7a222;
+}
+
+/* Small screens */
+@media (max-width: 600px) {
+  header {
+    padding: 16px 8px;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+  }
+
+  main {
+    
+    padding: 0 8px;
+  }
+}
+main p{
+  color:aqua;
+
+
+}
