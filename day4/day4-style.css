@@ -1,1 +1,84 @@
+:root {
+  --bg: #f5f5f7;
+  --text: #1d1d1f;
+  --surface: #ffffff;
+  --border: #c7c7cc;
+  --accent: #0a66c2;
+  --accent-text: #ffffff;
+  --warning: orange;
+  --over: red;
+}
 
+body.dark {
+  --bg: #121214;
+  --text: #f2f2f2;
+  --surface: #1e1e22;
+  --border: #3a3a40;
+  --accent: #4da3ff;
+  --accent-text: #0b0b0c;
+  --warning: #ffa733;
+  --over: #ff5c5c;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  font: inherit;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* 1. BASE BUTTON STYLES (Keep this at the top) */
+button {
+  padding: 10px 20px;
+  font: inherit;
+  background-color: #3a7dc5; /* Use background-color instead of background */
+  color: #c50e0e;            /* Changed text to white for readability */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease; /* Transition goes here */
+}
+
+/* 2. SPECIFIC BUTTON MODIFICATIONS */
+#clear-btn.clicked {
+  background-color: #28a745 !important; /* Turns green smoothly when JS toggles it! */
+}
+
+/* 3. TEXT LIMIT NOTIFICATIONS */
+.warning {
+  color: var(--warning);
+}
+
+.over {
+  color: var(--over);
+  font-weight: bold;
+}
