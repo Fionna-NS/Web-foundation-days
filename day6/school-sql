@@ -1,1 +1,102 @@
+IF DB_ID('SchoolDB') IS NULL
+    CREATE DATABASE SchoolDB;
+GO
 
+USE SchoolDB;
+GO
+
+DROP TABLE IF EXISTS enrolments;
+DROP TABLE IF EXISTS courses;
+DROP TABLE IF EXISTS students;
+GO
+
+-- ---------- TABLES ----------
+
+CREATE TABLE students (
+    id         INT IDENTITY(1,1) PRIMARY KEY,
+    first_name NVARCHAR(100) NOT NULL,
+    last_name  NVARCHAR(100) NOT NULL,
+    email      NVARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE courses (
+    id      INT IDENTITY(1,1) PRIMARY KEY,
+    title   NVARCHAR(150) NOT NULL,
+    credits INT NOT NULL DEFAULT 3
+);
+
+CREATE TABLE enrolments (
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    student_id  INT NOT NULL,
+    course_id   INT NOT NULL,
+    enrolled_on DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE),
+    grade       NVARCHAR(2) NULL,  -- NULL until the course is graded
+    FOREIGN KEY (student_id) REFERENCES students(id),
+    FOREIGN KEY (course_id)  REFERENCES courses(id),
+    UNIQUE (student_id, course_id)  -- same student cannot enrol on the same course twice
+);
+GO
+
+-- ---------- SAMPLE DATA ----------
+
+INSERT INTO students (first_name, last_name, email) VALUES
+    ('Amina',  'Wanjiru', 'amina.wanjiru@example.com'),
+    ('Brian',  'Otieno',  'brian.otieno@example.com'),
+    ('Chloe',  'Kamau',   'chloe.kamau@example.com'),
+    ('David',  'Mwangi',  'david.mwangi@example.com');
+
+INSERT INTO courses (title, credits) VALUES
+    ('Web Development', 4),
+    ('Databases',       3),
+    ('Algorithms',      4);
+
+INSERT INTO enrolments (student_id, course_id, enrolled_on, grade) VALUES
+    (1, 1, '2026-09-01', 'A'),
+    (1, 2, '2026-09-01', 'B'),
+    (2, 1, '2026-09-02', 'B'),
+    (3, 2, '2026-09-03', NULL),
+    (3, 3, '2026-09-03', 'A');
+-- David (id 4) deliberately has no enrolments.
+GO
+
+-- ---------- QUERIES ----------
+
+-- 1. All courses for one student (by name)
+SELECT c.title, c.credits, e.grade
+FROM students s
+JOIN enrolments e ON e.student_id = s.id
+JOIN courses c    ON c.id = e.course_id
+WHERE s.first_name = 'Amina' AND s.last_name = 'Wanjiru';
+
+-- 2. All students on one course
+SELECT s.first_name, s.last_name, s.email
+FROM courses c
+JOIN enrolments e ON e.course_id = c.id
+JOIN students s   ON s.id = e.student_id
+WHERE c.title = 'Web Development';
+
+-- 3. Number of students per course (includes courses with zero students)
+SELECT c.title, COUNT(e.id) AS student_count
+FROM courses c
+LEFT JOIN enrolments e ON e.course_id = c.id
+GROUP BY c.id, c.title
+ORDER BY student_count DESC;
+
+-- 4. Students who have no enrolments
+SELECT s.id, s.first_name, s.last_name
+FROM students s
+LEFT JOIN enrolments e ON e.student_id = s.id
+WHERE e.id IS NULL;
+
+-- 5. Update one enrolment's grade (Chloe's Databases grade was still NULL)
+UPDATE enrolments
+SET grade = 'B'
+WHERE student_id = (SELECT id FROM students WHERE email = 'chloe.kamau@example.com')
+  AND course_id  = (SELECT id FROM courses  WHERE title = 'Databases');
+
+-- Check the update
+SELECT s.first_name, c.title, e.grade
+FROM enrolments e
+JOIN students s ON s.id = e.student_id
+JOIN courses c  ON c.id = e.course_id
+WHERE s.email = 'chloe.kamau@example.com';
