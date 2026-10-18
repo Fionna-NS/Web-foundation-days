@@ -73,6 +73,10 @@ Spike versus normal: about 3,300 requests per second against about 60 normally, 
 | Duration | all day | 10 minutes | very short and sharp |
 | Traffic pattern | spread out, mostly reads | all at once, mostly writes on the same rows | contention on popular seats |
 
+Compared with the *average* normal rate (about 6 requests per second), the sale is roughly 550 times busier, all arriving within minutes.
+
+Only 20,000 seats exist, so at most 20,000 orders can succeed. The other 180,000 people will not get a ticket and must be told quickly (a clear "sold out" or "seat taken" message) so they stop refreshing and adding load.
+
 Conclusion: normal traffic is easy for one app server and one database. The big sale is a different problem: a short burst that is far bigger than normal and focused on the same 20,000 rows. We design for the spike, not the average.
 
 ### Storage
@@ -218,7 +222,7 @@ The inventory of each seat for each event. This is the table where seats are pro
 - **Event/Search service**: handles browsing, search and event pages. Reads from replicas and cache.
 - **Booking service**: handles seat holds. This is the most critical service and the one that enforces "no double sale".
 - **Order/Payment service**: turns a valid hold into a paid order, calls the payment provider, and writes tickets.
-- **Redis cache**: stores the seat map (very fast reads), the queue, and short-lived seat locks.
+- **Redis cache**: stores the seat map (very fast reads, cached for only a few seconds so it is never far out of date), the waiting-room queue, and short-lived seat locks. The final check always happens in the database, never in the cache.
 - **PostgreSQL primary**: the single source of truth for seat status and orders; all seat writes go here for strong consistency.
 - **Read replicas**: serve event and search reads so the primary is free for bookings.
 - **Message queue and workers**: do slow work in the background (send email, generate QR codes, release expired holds) so checkout stays fast.
@@ -257,7 +261,23 @@ WHERE event_id = :eventId AND seat_id = :seatId
   AND (status = 'AVAILABLE' OR (status = 'HELD' AND hold_expires_at < now()));
 ```
 
-The database locks the row while this runs, so two simultaneous requests are processed one after the other. The first one changes 1 row. The second finds the status is no longer AVAILABLE, changes **0 rows**, and the API returns **409 SEAT_TAKEN**. Multi-seat holds run in one transaction, all-or-nothing, with seats sorted by id to avoid deadlocks.
+The database locks the row while this runs, so two simultaneous requests are processed one after the other. The first one changes 1 row. The second finds the status is no longer AVAILABLE, changes **0 rows**, and the API returns **409 SEAT_TAKEN**. 
+
+When a user holds several seats, the same update runs inside one transaction so the hold is all-or-nothing:
+
+```sql
+BEGIN;
+UPDATE event_seats
+SET status = 'HELD', held_by = :userId, hold_expires_at = now() + interval '10 minutes'
+WHERE event_id = :eventId AND seat_id IN (1201, 1202)
+  AND (status = 'AVAILABLE' OR (status = 'HELD' AND hold_expires_at < now()));
+-- if fewer rows changed than seats requested, someone else got a seat first:
+--   ROLLBACK;  and reply 409 Conflict
+-- otherwise:
+COMMIT;        -- and reply 201 Created
+```
+
+Seats are always processed in order of id, which avoids deadlocks between two buyers who want overlapping seats. Expired holds become available again automatically, because the `WHERE` clause treats them like available seats.
 
 **Layer 2: time-limited hold.**
 A held seat belongs to one user for 10 minutes. Payment only completes if `held_by` is that user and `hold_expires_at` has not passed:
@@ -299,4 +319,3 @@ Result: for any (event, seat) pair, at most one `HELD` owner at a time and at mo
 
 **5. Cached seat map may be slightly stale.**
 *Gain:* the seat map is served fast to thousands of people. *Cost:* a user may click a seat that was just taken and get a 409 error. We accept this because the hold step is always checked against the database.
-
