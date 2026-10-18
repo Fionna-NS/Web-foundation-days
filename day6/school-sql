@@ -1,86 +1,105 @@
--- Clean start so the script can be re-run without errors
+-- School database: students, courses and enrolments (SQL Server / SSMS, T-SQL)
+
+-- Use a separate database instead of master
+IF DB_ID('SchoolDB') IS NULL
+    CREATE DATABASE SchoolDB;
+GO
+
+USE SchoolDB;
+GO
+
 DROP TABLE IF EXISTS enrolments;
 DROP TABLE IF EXISTS courses;
 DROP TABLE IF EXISTS students;
+GO
 
--- ---------- Tables ----------
+-- ---------- TABLES ----------
+
 CREATE TABLE students (
-  id     INTEGER PRIMARY KEY,
-  name   TEXT NOT NULL,
-  email  TEXT NOT NULL UNIQUE
+    id         INT IDENTITY(1,1) PRIMARY KEY,
+    first_name NVARCHAR(100) NOT NULL,
+    last_name  NVARCHAR(100) NOT NULL,
+    email      NVARCHAR(255) NOT NULL UNIQUE
 );
 
 CREATE TABLE courses (
-  id       INTEGER PRIMARY KEY,
-  title    TEXT NOT NULL,
-  teacher  TEXT NOT NULL
+    id      INT IDENTITY(1,1) PRIMARY KEY,
+    title   NVARCHAR(150) NOT NULL,
+    credits INT NOT NULL DEFAULT 3
 );
 
 CREATE TABLE enrolments (
-  student_id  INTEGER NOT NULL,
-  course_id   INTEGER NOT NULL,
-  grade       TEXT,                        -- empty until the course ends
-  PRIMARY KEY (student_id, course_id),     -- no double enrolment
-  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-  FOREIGN KEY (course_id)  REFERENCES courses(id)  ON DELETE CASCADE
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    student_id  INT NOT NULL,
+    course_id   INT NOT NULL,
+    enrolled_on DATE NOT NULL DEFAULT CAST(GETDATE() AS DATE),
+    grade       NVARCHAR(2) NULL,  -- NULL until the course is graded
+    FOREIGN KEY (student_id) REFERENCES students(id),
+    FOREIGN KEY (course_id)  REFERENCES courses(id),
+    UNIQUE (student_id, course_id)  -- same student cannot enrol on the same course twice
 );
+GO
 
--- ---------- Sample data ----------
-INSERT INTO students (name, email) VALUES
-  ('Amina Otieno', 'amina@school.ac.ke'),
-  ('Brian Kamau',  'brian@school.ac.ke'),
-  ('Grace Wanjiru','grace@school.ac.ke'),
-  ('David Mwangi', 'david@school.ac.ke');
+-- ---------- SAMPLE DATA ----------
 
-INSERT INTO courses (title, teacher) VALUES
-  ('Web Foundations', 'Ms Njeri'),
-  ('Databases',       'Mr Ochieng'),
-  ('Mathematics',     'Mrs Achieng');
+INSERT INTO students (first_name, last_name, email) VALUES
+    ('Amina',  'Wanjiru', 'amina.wanjiru@example.com'),
+    ('Brian',  'Otieno',  'brian.otieno@example.com'),
+    ('Chloe',  'Kamau',   'chloe.kamau@example.com'),
+    ('David',  'Mwangi',  'david.mwangi@example.com');
 
-INSERT INTO enrolments (student_id, course_id, grade) VALUES
-  (1, 1, 'A'),
-  (1, 2, NULL),
-  (2, 1, 'B'),
-  (2, 3, 'A'),
-  (3, 2, 'B');
--- David (id 4) has no enrolments yet
+INSERT INTO courses (title, credits) VALUES
+    ('Web Development', 4),
+    ('Databases',       3),
+    ('Algorithms',      4);
 
--- ---------- Queries ----------
+INSERT INTO enrolments (student_id, course_id, enrolled_on, grade) VALUES
+    (1, 1, '2026-09-01', 'A'),
+    (1, 2, '2026-09-01', 'B'),
+    (2, 1, '2026-09-02', 'B'),
+    (3, 2, '2026-09-03', NULL),
+    (3, 3, '2026-09-03', 'A');
+-- David (id 4) deliberately has no enrolments.
+GO
+
+-- ---------- QUERIES ----------
 
 -- 1. All courses for one student (by name)
-SELECT courses.title, enrolments.grade
-FROM enrolments
-JOIN students ON students.id = enrolments.student_id
-JOIN courses  ON courses.id  = enrolments.course_id
-WHERE students.name = 'Amina Otieno';
+SELECT c.title, c.credits, e.grade
+FROM students s
+JOIN enrolments e ON e.student_id = s.id
+JOIN courses c    ON c.id = e.course_id
+WHERE s.first_name = 'Amina' AND s.last_name = 'Wanjiru';
 
 -- 2. All students on one course
-SELECT students.name
-FROM enrolments
-JOIN students ON students.id = enrolments.student_id
-JOIN courses  ON courses.id  = enrolments.course_id
-WHERE courses.title = 'Web Foundations';
+SELECT s.first_name, s.last_name, s.email
+FROM courses c
+JOIN enrolments e ON e.course_id = c.id
+JOIN students s   ON s.id = e.student_id
+WHERE c.title = 'Web Development';
 
--- 3. Number of students per course (courses with 0 still appear)
-SELECT courses.title, COUNT(enrolments.student_id) AS student_count
-FROM courses
-LEFT JOIN enrolments ON enrolments.course_id = courses.id
-GROUP BY courses.id, courses.title;
+-- 3. Number of students per course (includes courses with zero students)
+SELECT c.title, COUNT(e.id) AS student_count
+FROM courses c
+LEFT JOIN enrolments e ON e.course_id = c.id
+GROUP BY c.id, c.title
+ORDER BY student_count DESC;
 
--- 4. Students with no enrolments
-SELECT students.name
-FROM students
-LEFT JOIN enrolments ON enrolments.student_id = students.id
-WHERE enrolments.student_id IS NULL;
+-- 4. Students who have no enrolments
+SELECT s.id, s.first_name, s.last_name
+FROM students s
+LEFT JOIN enrolments e ON e.student_id = s.id
+WHERE e.id IS NULL;
 
--- 5. Record Amina's grade for Databases
+-- 5. Update one enrolment's grade (Chloe's Databases grade was still NULL)
 UPDATE enrolments
-SET grade = 'A'
-WHERE student_id = 1 AND course_id = 2;
+SET grade = 'B'
+WHERE student_id = (SELECT id FROM students WHERE email = 'chloe.kamau@example.com')
+  AND course_id  = (SELECT id FROM courses  WHERE title = 'Databases');
 
 -- Check the update
-SELECT students.name, courses.title, enrolments.grade
-FROM enrolments
-JOIN students ON students.id = enrolments.student_id
-JOIN courses  ON courses.id  = enrolments.course_id
-WHERE students.id = 1 AND courses.id = 2;
+SELECT s.first_name, c.title, e.grade
+FROM enrolments e
+JOIN students s ON s.id = e.student_id
+JOIN courses c  ON c.id = e.course_id
+WHERE s.email = 'chloe.kamau@example.com';
