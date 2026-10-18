@@ -1,1 +1,8 @@
+# Reflection
+
+**The most difficult concept.** The hardest part of the course for me was client-server architecture, HTTP and APIs. At first I could not clearly see what happens between clicking a button and seeing a page: the browser sends a request, the server processes it, and a response comes back with a status code. Methods like GET and POST, codes like 404 and 409, and the idea of a REST API felt like separate rules I had to memorise. I overcame this by practising instead of only reading. I fetched real data from JSONPlaceholder, built small pages that called an API, and designed endpoints for my own projects until the pattern became natural. System scaling was also difficult, because it was hard to imagine one server failing under thousands of users. Doing traffic estimates step by step and drawing the architecture myself showed me why caches, load balancers and queues exist.
+
+**What I would improve in my capstone.** Based on the feedback I received, I would make my QuickNotes design documents more specific. My architecture explanation described each component, but it did not say enough about trade-offs and what happens when something fails. I would add a short section on those choices, justify the numbers in my data model and API design with estimates, and keep the docs consistent with each other so that a reader can follow one request from the API to the database.
+
+**What I will learn next.** I want to learn data analysis. This course showed me how data is stored, moved and served through databases and APIs, and I now want to learn how to get meaning out of it. I plan to start with SQL queries and spreadsheets, then learn Python with pandas to clean data and make charts, so I can turn raw data into clear answers and decisions.
 
